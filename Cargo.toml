@@ -1,0 +1,12 @@
+[workspace]
+members = ["vision","audio","control","agent", "core"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0 and Commercial"
+description = "SmallTarget is a GUI agent application for control your computer/phone/pad using natural language with the power of AI."
+authors = ["Lin,xiaolong <linxiaolong@niuchart.com>"]
+
+[workspace.dependencies]
