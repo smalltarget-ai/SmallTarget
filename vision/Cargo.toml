@@ -7,3 +7,15 @@ description.workspace = true
 authors.workspace = true
 
 [dependencies]
+log = { workspace = true }
+tokio = { workspace = true }
+# Image processing
+image = { workspace = true }
+once_cell = { workspace = true }
+anyhow = { workspace = true }
+
+#screen/window snapshot or recording
+xcap = "0.3.2"
+
+#executable path find
+which = "7.0.2"

@@ -1,12 +1,26 @@
 [workspace]
-members = ["vision","audio","control","agent", "core"]
+members = ["vision","audio","control", "core", "llm"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "AGPL-3.0 and Commercial"
+license = "Apache License 2.0 and SmallTarget License"
 description = "SmallTarget is a GUI agent application for control your computer/phone/pad using natural language with the power of AI."
-authors = ["Lin,xiaolong <linxiaolong@niuchart.com>"]
+authors = ["Lin,xiaolong <linsmalldragon@gmail.com>"]
 
 [workspace.dependencies]
+# Logging related dependencies
+log = "0.4"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-appender = { version = "0.2.3" }
+anyhow = "1.0.96"
+
+# Asynchronous runtime
+tokio = { version = "1.43.0", features = ["full", "tracing"] }
+
+# Thread Safe Lazy Initialization
+once_cell = "1.20.3"
+
+# Image processing
+image = "0.25.5"
