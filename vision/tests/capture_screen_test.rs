@@ -2,9 +2,9 @@
 mod tests {
     use image::GenericImageView;
     use vision::capture_screenshot_by_window::{
-        capture_all_visible_windows, CapturedWindow, WindowFilters,
+        capture_all_visible_windows, WindowFilters,
     };
-    use vision::monitor::{get_default_monitor, list_monitors};
+    use vision::monitor::list_monitors;
 
     #[tokio::test]
     async fn test_multi_monitor_capture() {

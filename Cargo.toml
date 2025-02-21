@@ -1,6 +1,7 @@
 [workspace]
 members = ["vision","audio","control", "core", "llm"]
 resolver = "2"
+exclude = ["app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
@@ -10,11 +11,14 @@ description = "SmallTarget is a GUI agent application for control your computer/
 authors = ["Lin,xiaolong <linsmalldragon@gmail.com>"]
 
 [workspace.dependencies]
+
 # Logging related dependencies
-log = "0.4"
+log = "0.4.26"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tracing-appender = { version = "0.2.3" }
 anyhow = "1.0.96"
+serde = "1.0.218"
+serde_json = "1.0.139"
 
 # Asynchronous runtime
 tokio = { version = "1.43.0", features = ["full", "tracing"] }

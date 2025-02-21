@@ -7,3 +7,9 @@ description.workspace = true
 authors.workspace = true
 
 [dependencies]
+enigo = "0.3.0"
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+log = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
