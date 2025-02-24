@@ -15,7 +15,7 @@ once_cell = { workspace = true }
 anyhow = { workspace = true }
 
 #screen/window snapshot or recording
-xcap = "0.3.2"
+xcap = "0.3.3"
 
 #executable path find
 which = "7.0.2"

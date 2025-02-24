@@ -1,33 +1,95 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use reqwest::Client;
 use serde_json::{json, Value};
 
-pub async fn call_ai(prompt: String, context: String, expect_json: bool,modle_name:String,base_url:String) -> Result<String> {
+pub struct OpenAiProtocalCallPayload {
+    base_url: String,
+    model_name: String,
+    user_content: String,
+    system_content: String,
+    expect_json: bool,
+    api_key: String,
+}
+impl OpenAiProtocalCallPayload {
+    pub fn new(
+        base_url: String,
+        model_name: String,
+        user_content: String,
+        system_content: String,
+        expect_json: bool,
+        api_key: String,
+    ) -> Self {
+        Self {
+            base_url,
+            model_name,
+            user_content,
+            system_content,
+            expect_json,
+            api_key,
+        }
+    }
+}
+pub fn get_system_prompt(language: &str) -> String {
+    format!(
+        r#"You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
+            ## Output Format
+            Thought: ...
+            Action: ...
+            ## Action Space
+            click(start_box='[x1, y1, x2, y2]')
+            left_double(start_box='[x1, y1, x2, y2]')
+            right_single(start_box='[x1, y1, x2, y2]')
+            drag(start_box='[x1, y1, x2, y2]', end_box='[x3, y3, x4, y4]')
+            hotkey(key='')
+            type(content='') #If you want to submit your input, use "\\n" at the end of `content`.
+            scroll(start_box='[x1, y1, x2, y2]', direction='down or up or right or left')
+            wait() #Sleep for 5s and take a screenshot to check for any changes.
+            finished()
+            call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.
+
+            ## Note
+            - Use {} in `Thought` part.
+            - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
+
+            ## User Instruction
+        "#,
+        if language == "zh" {
+            "Chinese"
+        } else {
+            "English"
+        }
+    )
+}
+
+pub async fn open_ai_protocal_call(payload: OpenAiProtocalCallPayload) -> Result<String> {
     let client = Client::new();
 
     let messages = vec![
         json!({
             "role": "system",
-            "content": context
+            "content": payload.system_content
         }),
         json!({
             "role": "user",
-            "content": prompt
-        })
+            "content": payload.user_content
+        }),
     ];
 
     let mut body = json!({
-        "model": modle_name,
+        "model": payload.model_name,
         "messages": messages,
         "temperature": 0,
         "stream": false
     });
 
-    if expect_json {
+    if payload.expect_json {
         body["response_format"] = json!({"type": "json_object"});
     }
 
-    let response: Value = client.post(format!("{}/v1/chat/completions",base_url))
+    let response: Value = client
+        .post(format!("{}/v1/chat/completions", payload.base_url))
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", payload.api_key))
         .json(&body)
         .send()
         .await?
@@ -52,13 +114,14 @@ pub async fn call_ai(prompt: String, context: String, expect_json: bool,modle_na
         .context("failed to extract content from response")?
         .to_string();
 
-    if expect_json {
-        let json_value: Value = serde_json::from_str(&content)
-            .context("response content is not valid JSON")?;
-        
+    if payload.expect_json {
+        let json_value: Value =
+            serde_json::from_str(&content).context("response content is not valid JSON")?;
+
         if let Some(array) = json_value["response"].as_array() {
             // If "response" is an array, join its elements with newlines
-            Ok(array.iter()
+            Ok(array
+                .iter()
                 .filter_map(|v| v.as_str())
                 .collect::<Vec<_>>()
                 .join("\n"))

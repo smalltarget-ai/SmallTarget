@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use control::input_control::{InputAction, input_control_handler};
+    use control::input_control::{input_control_handler, InputAction};
 
     #[tokio::test]
     async fn test_input_control_handler() -> Result<()> {
-        let action = InputAction::KeyPress("enter".to_string());
+        let action = InputAction::MouseMove { x: 0, y: 0 };
         let result = input_control_handler(action).await?;
         assert!(result);
         Ok(())
