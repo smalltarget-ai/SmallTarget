@@ -1,5 +1,5 @@
 [package]
-name = "llm"
+name = "small-target-image"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -7,9 +7,6 @@ description.workspace = true
 authors.workspace = true
 
 [dependencies]
-log = { workspace = true }
-tokio = { workspace = true }
 anyhow = { workspace = true }
-serde_json = { workspace = true }
-small-target-image = { path = "../small-target-image" }
-openai-api-rs = "5.2.6"
+base64 = { workspace = true }
+image = { workspace = true }

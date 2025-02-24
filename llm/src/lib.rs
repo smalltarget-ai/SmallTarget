@@ -1,2 +1,6 @@
-pub mod call_ai;
-pub use call_ai::{get_system_prompt, open_ai_protocal_call, OpenAiProtocalCallPayload};
+
+pub mod openai_request;
+pub use openai_request::{OpenAiProtocalCallPayload, openai_request, MAX_PIXELS};
+
+pub mod promps;
+pub use promps::get_system_prompt;
