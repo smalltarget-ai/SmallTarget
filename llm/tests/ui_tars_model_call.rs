@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use anyhow::{Context, Result};
+    use anyhow::Result;
     use llm::{get_system_prompt, openai_request, OpenAiProtocalCallPayload, MAX_PIXELS};
     use openai_api_rs::v1::chat_completion::{
         ChatCompletionMessage, Content, ContentType, ImageUrl, ImageUrlType, MessageRole,

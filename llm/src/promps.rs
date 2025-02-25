@@ -1,9 +1,13 @@
 pub fn get_system_prompt(language: &str) -> String {
     format!(
         r#"You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
+
             ## Output Format
+            ```
             Thought: ...
             Action: ...
+            ```
+
             ## Action Space
             click(start_box='[x1, y1, x2, y2]')
             left_double(start_box='[x1, y1, x2, y2]')
