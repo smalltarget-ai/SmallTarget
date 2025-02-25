@@ -18,17 +18,16 @@ pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionPa
 
     match mode {
         "bc" => {
-            // ... existing pattern matching logic ...
             if text.starts_with("Thought:") {
                 lazy_static! {
-                    static ref RE: Regex = Regex::new(r"Thought: ([\s\S]+?)(?=\s*Action:|$)").unwrap();
+                    static ref RE: Regex = Regex::new(r"Thought: ([\s\S]+?)(?:\s*Action:|\s*$)").unwrap();
                 }
                 if let Some(caps) = RE.captures(text) {
                     thought = Some(caps[1].trim().to_string());
                 }
             } else if text.starts_with("Reflection:") {
                 lazy_static! {
-                    static ref RE: Regex = Regex::new(r"Reflection: ([\s\S]+?)Action_Summary: ([\s\S]+?)(?=\s*Action:|$)").unwrap();
+                    static ref RE: Regex = Regex::new(r"Reflection: ([\s\S]+?)Action_Summary: ([\s\S]+?)(?:\s*Action:|\s*$)").unwrap();
                 }
                 if let Some(caps) = RE.captures(text) {
                     thought = Some(caps[2].trim().to_string());
@@ -36,7 +35,7 @@ pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionPa
                 }
             } else if text.starts_with("Action_Summary:") {
                 lazy_static! {
-                    static ref RE: Regex = Regex::new(r"Action_Summary: (.+?)(?=\s*Action:|$)").unwrap();
+                    static ref RE: Regex = Regex::new(r"Action_Summary: (.+?)(?:\s*Action:|\s*$)").unwrap();
                 }
                 if let Some(caps) = RE.captures(text) {
                     thought = Some(caps[1].trim().to_string());
@@ -49,8 +48,8 @@ pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionPa
         "o1" => {
             lazy_static! {
                 static ref THOUGHT_RE: Regex = Regex::new(r"<Thought>\s*(.*?)\s*</Thought>").unwrap();
-                static ref SUMMARY_RE: Regex = Regex::new(r"\nAction_Summary:\s*(.*?)\s*Action:").unwrap();
-                static ref ACTION_RE: Regex = Regex::new(r"\nAction:\s*(.*?)\s*</Output>").unwrap();
+                static ref SUMMARY_RE: Regex = Regex::new(r"(?s)Action_Summary:\s*(.*?)\s*Action:").unwrap();
+                static ref ACTION_RE: Regex = Regex::new(r"(?s)Action:\s*(.*?)\s*</Output>").unwrap();
             }
 
             let thought_content = THOUGHT_RE.captures(text).and_then(|c| c.get(1)).map(|m| m.as_str());
@@ -79,13 +78,17 @@ pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionPa
 
                 if param_name.contains("start_box") || param_name.contains("end_box") {
                     let numbers: Vec<f32> = trimmed
-                        .replace(|c: char| !c.is_numeric() && c != '.', "")
+                        .trim_matches(|c| c == '(' || c == ')' || c == '[' || c == ']')
                         .split(',')
                         .filter_map(|s| s.parse().ok())
                         .map(|num: f32| num / factor)
                         .collect();
 
-                    let numbers = if numbers.len() == 2 { vec![numbers[0], numbers[1], numbers[0], numbers[1]] } else { numbers };
+                    let numbers = if numbers.len() == 2 {
+                        vec![numbers[0], numbers[1], numbers[0], numbers[1]]
+                    } else {
+                        numbers
+                    };
 
                     action_inputs.insert(param_name, serde_json::to_string(&numbers).unwrap());
                 } else {
