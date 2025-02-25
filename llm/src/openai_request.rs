@@ -7,7 +7,7 @@ use openai_api_rs::v1::{
 use std::result::Result::Ok as StdOK;
 
 /// max pixels of image to send to llm
-pub const MAX_PIXELS: u32 = 800 * 28 * 28;
+pub const MAX_PIXELS: u32 = 1350 * 28 * 28;
 
 pub struct OpenAiProtocalCallPayload {
     base_url: String,
