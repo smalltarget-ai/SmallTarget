@@ -4,12 +4,13 @@ mod tests {
     use std::collections::HashMap;
 
     mod bc_mode {
+        use llm::promps::FACTOR;
         use super::*;
 
         #[test]
         fn should_correctly_parse_input_with_thought() {
             let input = "Thought: I need to click this button\nAction: click(start_box='(100,200)')";
-            let result = parse_action_vlm(input, 1000.0, "bc");
+            let result = parse_action_vlm(input, FACTOR, "bc");
             let expected = vec![PredictionParsed {
                 reflection: None,
                 thought: "I need to click this button".to_string(),
@@ -24,9 +25,32 @@ mod tests {
         }
 
         #[test]
+        fn test_thought_with_custom_factors() {
+            let input = "Thought: I need to click this button\nAction: click(start_box='(100,200)')";
+            let factor = (1366.0, 768.0);
+            
+            let result = parse_action_vlm(input, factor, "bc");
+            
+            let mut expected_inputs = HashMap::new();
+            expected_inputs.insert(
+                "start_box".to_string(),
+                "[0.07320644,0.26041666,0.07320644,0.26041666]".to_string()
+            );
+            
+            assert_eq!(result, vec![
+                PredictionParsed {
+                    reflection: None,
+                    thought: "I need to click this button".to_string(),
+                    action_type: "click".to_string(),
+                    action_inputs: expected_inputs,
+                }
+            ]);
+        }
+
+        #[test]
         fn should_correctly_parse_input_with_reflection_and_action_summary() {
             let input = "Reflection: This is a reflection\nAction_Summary: This is a summary\nAction: type(text='Hello', start_box='(300,400)')";
-            let result = parse_action_vlm(input, 1000.0, "bc");
+            let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![PredictionParsed {
                 reflection: Some("This is a reflection".to_string()),
@@ -45,7 +69,7 @@ mod tests {
         #[test]
         fn should_handle_multiple_actions() {
             let input = "Thought: Perform multiple actions\nAction: click(start_box='(100,200)')\n\ntype(text='Hello', start_box='(300,400)')";
-            let result = parse_action_vlm(input, 1000.0, "bc");
+            let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![
                 PredictionParsed {
@@ -75,6 +99,8 @@ mod tests {
     }
 
     mod o1_mode {
+        use llm::promps::FACTOR;
+
         use super::*;
 
         #[test]
@@ -83,7 +109,7 @@ mod tests {
             Action_Summary: Click and type text
             Action: click(start_box='(100,200)')
             </Output>"#;
-            let result = parse_action_vlm(input, 1000.0, "o1");
+            let result = parse_action_vlm(input, FACTOR, "o1");
 
             let expected = vec![PredictionParsed {
                 reflection: None,
@@ -104,7 +130,7 @@ mod tests {
             Action_Summary: Multiple sequential actions
             Action: click(start_box='(100,200)')
             </Output>"#;
-            let result = parse_action_vlm(input, 1000.0, "o1");
+            let result = parse_action_vlm(input, FACTOR, "o1");
 
             let expected = vec![PredictionParsed {
                 reflection: None,
@@ -121,12 +147,14 @@ mod tests {
     }
 
     mod edge_cases {
+        use llm::promps::FACTOR;
+
         use super::*;
 
         #[test]
         fn should_handle_input_without_action_keyword() {
             let input = r#"click(start_box="(100,200)")"#;
-            let result = parse_action_vlm(input, 1000.0, "bc");
+            let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![PredictionParsed {
                 action_inputs: {
@@ -144,7 +172,7 @@ mod tests {
         #[test]
         fn should_handle_empty_action_input() {
             let input = "Thought: Empty action\nAction:";
-            let result = parse_action_vlm(input, 1000.0, "bc");
+            let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![PredictionParsed {
                 action_inputs: HashMap::new(),

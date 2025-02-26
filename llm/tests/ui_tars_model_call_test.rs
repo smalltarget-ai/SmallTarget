@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use llm::{get_system_prompt, openai_request, parse_action_vlm, OpenAiProtocalCallPayload, MAX_PIXELS};
+    use llm::{get_system_prompt, openai_request, parse_action_vlm, promps::FACTOR, OpenAiProtocalCallPayload, MAX_PIXELS};
     use openai_api_rs::v1::chat_completion::{ChatCompletionMessage, Content, ContentType, ImageUrl, ImageUrlType, MessageRole};
     use small_target_image::{image_from_path, image_resize, image_to_base64};
     use std::{fs::create_dir_all, path::PathBuf};
@@ -61,8 +61,8 @@ mod tests {
         let history = vec![];
         let payload = OpenAiProtocalCallPayload::new("http://d3:8000/v1".to_string(), "ui-tars".to_string(), "api_token".to_string(), messages, history, 0.0, 0.7, 1000);
         let result = openai_request(payload).await?;
-        let action_parser_result = parse_action_vlm(result.choices[0].message.content.as_ref().unwrap(), 1000.0, "bc");
-        println!("action_parser_result: {:?}", action_parser_result);
+        println!("action_parser_result: {:?}", result);
+        let action_parser_result = parse_action_vlm(result.choices[0].message.content.as_ref().unwrap(), FACTOR, "bc");
         for action in action_parser_result {
             println!("action: {:?}", action.action_type);
             println!("thought: {:?}", action.thought);

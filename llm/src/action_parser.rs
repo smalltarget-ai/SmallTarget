@@ -10,7 +10,7 @@ pub struct PredictionParsed {
     pub action_inputs: HashMap<String, String>,
 }
 
-pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionParsed> {
+pub fn parse_action_vlm(text: &str, factor: (f32, f32), mode: &str) -> Vec<PredictionParsed> {
     let text = text.trim();
     let mut reflection = None;
     let mut thought = None;
@@ -75,13 +75,13 @@ pub fn parse_action_vlm(text: &str, factor: f32, mode: &str) -> Vec<PredictionPa
             action_type = act.function;
             for (param_name, param_value) in act.args {
                 let trimmed = param_value.trim().to_string();
-
                 if param_name.contains("start_box") || param_name.contains("end_box") {
                     let numbers: Vec<f32> = trimmed
                         .trim_matches(|c| c == '(' || c == ')' || c == '[' || c == ']')
                         .split(',')
-                        .filter_map(|s| s.parse().ok())
-                        .map(|num: f32| num / factor)
+                        .filter_map(|s| s.parse::<f32>().ok())
+                        .enumerate()
+                        .map(|(index, num)| num / if index % 2 == 0 { factor.0 } else { factor.1 })
                         .collect();
 
                     let numbers = if numbers.len() == 2 {

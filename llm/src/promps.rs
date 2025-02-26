@@ -1,3 +1,5 @@
+pub const FACTOR: (f32, f32) = (1000.0, 1000.0);
+
 pub fn get_system_prompt(language: &str) -> String {
     format!(
         r#"You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task.
