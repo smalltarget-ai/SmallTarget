@@ -1,39 +1,36 @@
-use enigo::{
-    Coordinate::{Abs, Rel},
-    Direction::{Click, Press, Release},
-    Key, Keyboard, Mouse as _, Settings,
-};
+use enigo::Settings;
 
 mod common;
 use common::enigo_test::EnigoTest;
 
 #[test]
 fn integration_browser_events() {
+    println!("start test");
     let mut enigo = EnigoTest::new(&Settings::default());
 
     enigo.text("TestText❤️").unwrap();
-    enigo.key(Key::F1, Click).unwrap();
-    enigo.key(Key::Control, Click).unwrap();
-    enigo.key(Key::Backspace, Click).unwrap();
-    enigo.key(Key::PageUp, Click).unwrap();
 
-    enigo.key(Key::Backspace, Press).unwrap();
-    enigo.key(Key::Backspace, Release).unwrap();
+    enigo.key("F12".to_string()).unwrap();
+    enigo.key("Control".to_string()).unwrap();
+    enigo.key("Backspace".to_string()).unwrap();
+    enigo.key("PageUp".to_string()).unwrap();
+
+    enigo.key("Backspace".to_string()).unwrap();
+    enigo.key("Backspace".to_string()).unwrap();
 
     println!("Test mouse");
     // enigo.button(Button::Left, Click).unwrap();
-    enigo.move_mouse(100, 100, Abs).unwrap();
-    enigo.move_mouse(200, 200, Abs).unwrap();
+    enigo.move_mouse("mouse_move".to_string(), "[100,100]".to_string()).unwrap();
+    enigo.move_mouse("mouse_move".to_string(), "[200,200]".to_string()).unwrap();
+    enigo.click("click".to_string(), "[200,200]".to_string()).unwrap();
+    enigo.click("left_double".to_string(), "[250,250]".to_string()).unwrap();
+    enigo.click("right_single".to_string(), "[300,300]".to_string()).unwrap();
     let (x, y) = enigo.location().unwrap();
     assert_eq!((200, 200), (x, y));
-    enigo.move_mouse(20, 20, Rel).unwrap();
-    enigo.move_mouse(-20, 20, Rel).unwrap();
-    enigo.move_mouse(20, -20, Rel).unwrap();
-    enigo.move_mouse(-20, -20, Rel).unwrap();
 
     // Stalls on Windows, macOS and Linux with x11rb
-    // enigo.scroll(1, Vertical).unwrap();
-    // enigo.scroll(1, Horizontal).unwrap();
+    enigo.scroll("scroll".to_string(), "[300,300]".to_string(), "up".to_string(), 1).unwrap();
+    enigo.scroll("scroll".to_string(), "[300,300]".to_string(), "right".to_string(), 1).unwrap();
 
     enigo.main_display().unwrap();
     enigo.location().unwrap();

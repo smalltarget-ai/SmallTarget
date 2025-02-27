@@ -64,10 +64,10 @@ mod tests {
         println!("action_parser_result: {:?}", result);
         let action_parser_result = parse_action_vlm(result.choices[0].message.content.as_ref().unwrap(), FACTOR, "bc");
         for action in action_parser_result {
-            println!("action: {:?}", action.action_type);
+            println!("action: {:?}", action.action_parsed.action_type);
             println!("thought: {:?}", action.thought);
             println!("reflection: {:?}", action.reflection);
-            for (key, value) in action.action_inputs {
+            for (key, value) in action.action_parsed.action_inputs {
                 if key == "start_box" || key == "end_box" {
                     //convert string to json array
                     let json_value: Vec<f32> = serde_json::from_str(&value)?;

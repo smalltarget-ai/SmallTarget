@@ -1,9 +1,11 @@
-use std::net::{TcpListener, TcpStream};
-
-use control::{ActionControl, InputAction};
-use enigo::{
-    Axis, Coordinate, Direction::{self, Click, Press, Release}, InputResult, Key, Keyboard, Mouse, Settings
+use std::{
+    collections::HashMap,
+    net::{TcpListener, TcpStream},
 };
+
+use anyhow::{anyhow, Result};
+use control::{ActionControl, InputAction};
+use enigo::{Axis, Button, InputResult, Key, Mouse, Settings};
 use tungstenite::accept;
 
 use super::browser_events::BrowserEvent;
@@ -67,11 +69,9 @@ impl EnigoTest {
             std::process::exit(1); // Exit with error code
         });
     }
-}
 
-impl Keyboard for EnigoTest {
     // This does not work for all text or the library does not work properly
-    fn fast_text(&mut self, text: &str) -> InputResult<Option<()>> {
+    pub fn text(&mut self, text: &str) -> Result<()> {
         self.send_message("ClearText");
         println!("Attempt to clear the text");
         assert_eq!(BrowserEvent::ReadyForText, self.read_message(), "Failed to get ready for the text");
@@ -86,105 +86,130 @@ impl Keyboard for EnigoTest {
         } else {
             panic!("BrowserEvent was not a Text: {ev:?}");
         }
-
-        res.map(Some) // TODO: Check if this is always correct
+        res
     }
 
-    fn key(&mut self, key: Key, direction: Direction) -> InputResult<()> {
-        let res = self.action.handle_action(InputAction::KeyPress(key));
-        if direction == Press || direction == Click {
-            let ev = self.read_message();
-            if let BrowserEvent::KeyDown(name) = ev {
-                println!("received pressed key: {name}");
-                let key_name = if let Key::Unicode(char) = key {
-                    format!("{char}")
-                } else {
-                    format!("{key:?}").to_lowercase()
-                };
-                println!("key_name: {key_name}");
-                assert_eq!(key_name, name.to_lowercase());
+    pub fn key(&mut self, key_str: String) -> Result<()> {
+        let input_action = InputAction::new("key_click".to_string(), HashMap::from([("key".to_string(), key_str)]))?;
+
+        let key = match input_action {
+            InputAction::KeyClick(k) => k.clone(),
+            _ => panic!("Invalid action type"),
+        };
+
+        let res = self.action.handle_action(input_action);
+        let ev: BrowserEvent = self.read_message();
+
+        if let BrowserEvent::KeyDown(name) = ev {
+            println!("browser received pressed key: {name}");
+            let key_name = if let Key::Unicode(char) = &key {
+                format!("{char}")
             } else {
-                panic!("BrowserEvent was not a KeyDown: {ev:?}");
-            }
+                format!("{key:?}").to_lowercase()
+            };
+            assert_eq!(key_name, name.to_lowercase());
+        } else {
+            panic!("BrowserEvent was not a KeyDown: {ev:?}");
         }
-        if direction == Release || direction == Click {
-            std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
-            let ev = self.read_message();
-            if let BrowserEvent::KeyUp(name) = ev {
-                println!("received released key: {name}");
-                let key_name = if let Key::Unicode(char) = key {
-                    format!("{char}")
-                } else {
-                    format!("{key:?}").to_lowercase()
-                };
-                println!("key_name: {key_name}");
-                assert_eq!(key_name, name.to_lowercase());
+
+        let ev: BrowserEvent = self.read_message();
+        if let BrowserEvent::KeyUp(name) = ev {
+            println!("browser received released key: {name}");
+            let key_name = if let Key::Unicode(char) = &key {
+                format!("{char}")
             } else {
-                panic!("BrowserEvent was not a KeyUp: {ev:?}");
-            }
+                format!("{key:?}").to_lowercase()
+            };
+            assert_eq!(key_name, name.to_lowercase());
+        } else {
+            panic!("BrowserEvent was not a KeyUp: {ev:?}");
         }
+
         println!("enigo.key() was a success");
         res
     }
 
-    fn raw(&mut self, keycode: u16, direction: enigo::Direction) -> InputResult<()> {
-        todo!()
-    }
-}
+    pub fn click(&mut self, action_type: String, start_box: String) -> Result<()> {
+        let input_action = InputAction::new(action_type, HashMap::from([("start_box".to_string(), start_box)]))?;
+        let (x, y, button) = match input_action {
+            InputAction::MouseLeftClick { x, y } => (x, y, Button::Left),
+            InputAction::MouseMiddleClick { x, y } => (x, y, Button::Middle),
+            InputAction::MouseRightClick { x, y } => (x, y, Button::Right),
+            InputAction::MouseLeftDoubleClick { x, y } => (x, y, Button::Left),
+            _ => panic!("Invalid action type"),
+        };
+        let res = self.action.handle_action(input_action);
 
-impl Mouse for EnigoTest {
-    fn button(&mut self, button: enigo::Button, direction: Direction) -> InputResult<()> {
-        let res = self.action.handle_action(InputAction::MouseLeftClick(button));
-        if direction == Press || direction == Click {
-            let ev = self.read_message();
-            if let BrowserEvent::MouseDown(name) = ev {
-                println!("received pressed button: {name}");
-                assert_eq!(button as u32, name);
-            } else {
-                panic!("BrowserEvent was not a MouseDown: {ev:?}");
-            }
+        let ev = self.read_message();
+        let mouse_position = if let BrowserEvent::MouseMove(_pos_rel, pos_abs) = ev {
+            pos_abs
+        } else {
+            panic!("BrowserEvent was not a MouseMove: {ev:?}");
+        };
+        assert_eq!(x, mouse_position.0);
+        assert_eq!(y, mouse_position.1);
+
+        let ev = self.read_message();
+        if let BrowserEvent::MouseDown(name) = ev {
+            println!("received pressed button: {name}");
+            assert_eq!(button as u32, name);
+        } else {
+            panic!("BrowserEvent was not a MouseUp: {ev:?}");
         }
-        if direction == Release || direction == Click {
-            std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
-            let ev = self.read_message();
-            if let BrowserEvent::MouseUp(name) = ev {
-                println!("received released button: {name}");
-                assert_eq!(button as u32, name);
-            } else {
-                panic!("BrowserEvent was not a MouseUp: {ev:?}");
-            }
+        let ev = self.read_message();
+        if let BrowserEvent::MouseUp(name) = ev {
+            println!("received released button: {name}");
+            assert_eq!(button as u32, name);
+        } else {
+            panic!("BrowserEvent was not a MouseUp: {ev:?}");
         }
         println!("enigo.button() was a success");
         res
     }
 
-    fn move_mouse(&mut self, x: i32, y: i32, coordinate: Coordinate) -> InputResult<()> {
-        let res = self.enigo.move_mouse(x, y, coordinate);
-        println!("Executed enigo.move_mouse");
-        std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
+    pub fn move_mouse(&mut self, action_type: String, start_box: String) -> Result<()> {
+        let input_action = InputAction::new(action_type, HashMap::from([("start_box".to_string(), start_box)]))?;
+        let (x, y) = match input_action {
+            InputAction::MouseMove { x, y } => (x, y),
+            _ => panic!("Invalid action type"),
+        };
+        let res = self.action.handle_action(input_action);
 
         let ev = self.read_message();
-        println!("Done waiting");
-
-        let mouse_position = if let BrowserEvent::MouseMove(pos_rel, pos_abs) = ev {
-            match coordinate {
-                Coordinate::Rel => pos_rel,
-                Coordinate::Abs => pos_abs,
-            }
+        let mouse_position = if let BrowserEvent::MouseMove(_pos_rel, pos_abs) = ev {
+            pos_abs
         } else {
             panic!("BrowserEvent was not a MouseMove: {ev:?}");
         };
-
         assert_eq!(x, mouse_position.0);
         assert_eq!(y, mouse_position.1);
         println!("enigo.move_mouse() was a success");
         res
     }
 
-    fn scroll(&mut self, length: i32, axis: Axis) -> InputResult<()> {
-        let mut length = length;
-        let res = self.enigo.scroll(length, axis);
-        println!("Executed Enigo");
+    pub fn scroll(&mut self, action_type: String, start_box: String, direction_str: String, length: i32) -> Result<()> {
+        let input_action = InputAction::new(
+            action_type,
+            HashMap::from([
+                ("start_box".to_string(), start_box),
+                ("length".to_string(), length.to_string()),
+                ("direction".to_string(), direction_str),
+            ]),
+        )?;
+        let (x, y, length, direction) = match input_action {
+            InputAction::Scroll { x, y, length, direction } => (x, y, length, direction),
+            _ => panic!("Invalid action type"),
+        };
+        let res = self.action.handle_action(input_action);
+        let ev = self.read_message();
+        let mouse_position = if let BrowserEvent::MouseMove(_pos_rel, pos_abs) = ev {
+            pos_abs
+        } else {
+            panic!("BrowserEvent was not a MouseMove: {ev:?}");
+        };
+        assert_eq!(x, mouse_position.0);
+        assert_eq!(y, mouse_position.1);
+
         std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
 
         // On some platforms it is not possible to scroll multiple lines so we
@@ -192,12 +217,13 @@ impl Mouse for EnigoTest {
         // cases are not differentiated
         let mut mouse_scroll;
         let mut step;
+        let mut length = length;
         while length > 0 {
             let ev = self.read_message();
             println!("Done waiting");
 
             (mouse_scroll, step) = if let BrowserEvent::MouseScroll(horizontal_scroll, vertical_scroll) = ev {
-                match axis {
+                match direction {
                     Axis::Horizontal => (horizontal_scroll, SCROLL_STEP.0),
                     Axis::Vertical => (vertical_scroll, SCROLL_STEP.1),
                 }
@@ -206,13 +232,12 @@ impl Mouse for EnigoTest {
             };
             length -= mouse_scroll / step;
         }
-
         println!("enigo.scroll() was a success");
         res
     }
 
-    fn main_display(&self) -> InputResult<(i32, i32)> {
-        let res = self.enigo.main_display();
+    pub fn main_display(&self) -> InputResult<(i32, i32)> {
+        let res = self.action.enigo.main_display();
         match res {
             Ok((x, y)) => {
                 let (rdev_x, rdev_y) = rdev_main_display();
@@ -228,8 +253,8 @@ impl Mouse for EnigoTest {
 
     // Edge cases don't work (mouse is at the left most border and can't move one to
     // the left)
-    fn location(&self) -> InputResult<(i32, i32)> {
-        let res = self.enigo.location();
+    pub fn location(&self) -> Result<(i32, i32)> {
+        let res = self.action.enigo.location().map_err(|e| anyhow!("{}", e));
         match res {
             Ok((x, y)) => {
                 let (mouse_x, mouse_y) = mouse_position();

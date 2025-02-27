@@ -2,12 +2,18 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
 
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ActionParsed {
+    pub action_type: String,
+    pub action_inputs: HashMap<String, String>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PredictionParsed {
     pub reflection: Option<String>,
     pub thought: String,
-    pub action_type: String,
-    pub action_inputs: HashMap<String, String>,
+    pub action_parsed: ActionParsed
 }
 
 pub fn parse_action_vlm(text: &str, factor: (f32, f32), mode: &str) -> Vec<PredictionParsed> {
@@ -100,15 +106,17 @@ pub fn parse_action_vlm(text: &str, factor: (f32, f32), mode: &str) -> Vec<Predi
         actions.push(PredictionParsed {
             reflection: reflection.clone(),
             thought: thought.clone().unwrap_or_default(),
-            action_type,
-            action_inputs,
+            action_parsed: ActionParsed {
+                action_type,
+                action_inputs,
+            },
         });
     }
 
     actions
 }
 #[derive(Debug)]
-pub struct ParsedAction {
+struct ParsedAction {
     function: String,
     args: HashMap<String, String>,
 }
@@ -130,7 +138,6 @@ fn parse_action(action_str: &str) -> Option<ParsedAction> {
     if !args_str.is_empty() {
         for pair in ARG_RE.find_iter(args_str) {
             let pair = pair.as_str();
-            println!("pair: {:?}", pair);
             let parts: Vec<&str> = pair.splitn(2, '=').collect();
             if parts.len() != 2 {
                 continue;

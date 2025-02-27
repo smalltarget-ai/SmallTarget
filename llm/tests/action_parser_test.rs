@@ -2,10 +2,11 @@
 mod tests {
     use llm::action_parser::{parse_action_vlm, PredictionParsed};
     use std::collections::HashMap;
+    use llm::action_parser::ActionParsed;
 
     mod bc_mode {
-        use llm::promps::FACTOR;
         use super::*;
+        use llm::{action_parser::ActionParsed, promps::FACTOR};
 
         #[test]
         fn should_correctly_parse_input_with_thought() {
@@ -14,11 +15,13 @@ mod tests {
             let expected = vec![PredictionParsed {
                 reflection: None,
                 thought: "I need to click this button".to_string(),
-                action_type: "click".to_string(),
-                action_inputs: {
-                    let mut map = HashMap::new();
-                    map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
-                    map
+                action_parsed: ActionParsed {
+                    action_type: "click".to_string(),
+                    action_inputs: {
+                        let mut map = HashMap::new();
+                        map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
+                        map
+                    },
                 },
             }];
             assert_eq!(result, expected);
@@ -28,23 +31,23 @@ mod tests {
         fn test_thought_with_custom_factors() {
             let input = "Thought: I need to click this button\nAction: click(start_box='(100,200)')";
             let factor = (1366.0, 768.0);
-            
+
             let result = parse_action_vlm(input, factor, "bc");
-            
+
             let mut expected_inputs = HashMap::new();
-            expected_inputs.insert(
-                "start_box".to_string(),
-                "[0.07320644,0.26041666,0.07320644,0.26041666]".to_string()
-            );
-            
-            assert_eq!(result, vec![
-                PredictionParsed {
+            expected_inputs.insert("start_box".to_string(), "[0.07320644,0.26041666,0.07320644,0.26041666]".to_string());
+
+            assert_eq!(
+                result,
+                vec![PredictionParsed {
                     reflection: None,
                     thought: "I need to click this button".to_string(),
-                    action_type: "click".to_string(),
-                    action_inputs: expected_inputs,
-                }
-            ]);
+                    action_parsed: ActionParsed {
+                        action_type: "click".to_string(),
+                        action_inputs: expected_inputs,
+                    },
+                }]
+            );
         }
 
         #[test]
@@ -55,12 +58,14 @@ mod tests {
             let expected = vec![PredictionParsed {
                 reflection: Some("This is a reflection".to_string()),
                 thought: "This is a summary".to_string(),
-                action_type: "type".to_string(),
-                action_inputs: {
-                    let mut map = HashMap::new();
-                    map.insert("text".to_string(), "Hello".to_string());
-                    map.insert("start_box".to_string(), "[0.3,0.4,0.3,0.4]".to_string());
-                    map
+                action_parsed: ActionParsed {
+                    action_type: "type".to_string(),
+                    action_inputs: {
+                        let mut map = HashMap::new();
+                        map.insert("text".to_string(), "Hello".to_string());
+                        map.insert("start_box".to_string(), "[0.3,0.4,0.3,0.4]".to_string());
+                        map
+                    },
                 },
             }];
             assert_eq!(result, expected);
@@ -73,24 +78,28 @@ mod tests {
 
             let expected = vec![
                 PredictionParsed {
-                    thought: "Perform multiple actions".to_string(),
                     reflection: None,
-                    action_type: "click".to_string(),
-                    action_inputs: {
-                        let mut map = HashMap::new();
-                        map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
-                        map
+                    thought: "Perform multiple actions".to_string(),
+                    action_parsed: ActionParsed {
+                        action_type: "click".to_string(),
+                        action_inputs: {
+                            let mut map = HashMap::new();
+                            map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
+                            map
+                        },
                     },
                 },
                 PredictionParsed {
-                    thought: "Perform multiple actions".to_string(),
                     reflection: None,
-                    action_type: "type".to_string(),
-                    action_inputs: {
-                        let mut map = HashMap::new();
-                        map.insert("text".to_string(), "Hello".to_string());
-                        map.insert("start_box".to_string(), "[0.3,0.4,0.3,0.4]".to_string());
-                        map
+                    thought: "Perform multiple actions".to_string(),
+                    action_parsed: ActionParsed {
+                        action_type: "type".to_string(),
+                        action_inputs: {
+                            let mut map = HashMap::new();
+                            map.insert("text".to_string(), "Hello".to_string());
+                            map.insert("start_box".to_string(), "[0.3,0.4,0.3,0.4]".to_string());
+                            map
+                        },
                     },
                 },
             ];
@@ -114,11 +123,13 @@ mod tests {
             let expected = vec![PredictionParsed {
                 reflection: None,
                 thought: "I need to perform this action\n<Action_Summary>\nClick and type text".to_string(),
-                action_type: "click".to_string(),
-                action_inputs: {
-                    let mut map = HashMap::new();
-                    map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
-                    map
+                action_parsed: ActionParsed {
+                    action_type: "click".to_string(),
+                    action_inputs: {
+                        let mut map = HashMap::new();
+                        map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
+                        map
+                    },
                 },
             }];
             assert_eq!(result, expected);
@@ -135,11 +146,13 @@ mod tests {
             let expected = vec![PredictionParsed {
                 reflection: None,
                 thought: "Complex operation\n<Action_Summary>\nMultiple sequential actions".to_string(),
-                action_type: "click".to_string(),
-                action_inputs: {
-                    let mut map = HashMap::new();
-                    map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
-                    map
+                action_parsed: ActionParsed {
+                    action_type: "click".to_string(),
+                    action_inputs: {
+                        let mut map = HashMap::new();
+                        map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
+                        map
+                    },
                 },
             }];
             assert_eq!(result, expected);
@@ -157,14 +170,16 @@ mod tests {
             let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![PredictionParsed {
-                action_inputs: {
-                    let mut map = HashMap::new();
-                    map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
-                    map
-                },
-                action_type: "click".to_string(),
                 reflection: None,
                 thought: "".to_string(),
+                action_parsed: ActionParsed {
+                    action_type: "click".to_string(),
+                    action_inputs: {
+                        let mut map = HashMap::new();
+                        map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
+                        map
+                    },
+                },
             }];
             assert_eq!(result, expected);
         }
@@ -175,10 +190,12 @@ mod tests {
             let result = parse_action_vlm(input, FACTOR, "bc");
 
             let expected = vec![PredictionParsed {
-                action_inputs: HashMap::new(),
-                action_type: "".to_string(),
                 reflection: None,
                 thought: "Empty action".to_string(),
+                action_parsed: ActionParsed {
+                    action_type: "".to_string(),
+                    action_inputs: HashMap::new(),
+                },
             }];
             assert_eq!(result, expected);
         }
