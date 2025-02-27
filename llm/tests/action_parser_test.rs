@@ -159,7 +159,7 @@ mod tests {
             let expected = vec![PredictionParsed {
                 action_inputs: {
                     let mut map = HashMap::new();
-                    map.insert("start_box".to_string(), "[0.1]".to_string());
+                    map.insert("start_box".to_string(), "[0.1,0.2,0.1,0.2]".to_string());
                     map
                 },
                 action_type: "click".to_string(),

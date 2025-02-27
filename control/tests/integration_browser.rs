@@ -5,11 +5,11 @@ use enigo::{
 };
 
 mod common;
-use common::enigo_test::EnigoTest as Enigo;
+use common::enigo_test::EnigoTest;
 
 #[test]
 fn integration_browser_events() {
-    let mut enigo = Enigo::new(&Settings::default());
+    let mut enigo = EnigoTest::new(&Settings::default());
 
     enigo.text("TestText❤️").unwrap();
     enigo.key(Key::F1, Click).unwrap();

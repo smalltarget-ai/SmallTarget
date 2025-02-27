@@ -1,15 +1,15 @@
 use std::thread::sleep;
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
-use enigo::{Axis, Button, Coordinate, Direction, Key};
+use anyhow::Result;
+use enigo::{Axis, Button, Coordinate, Direction, InputError, Key};
 use enigo::{Enigo, Keyboard, Mouse, Settings};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize,Serialize, Debug)]
 #[serde(tag = "type", content = "data")]
 pub enum InputAction {
-    KeyPress(char),
+    KeyPress(Key),
     WriteText(String),
 
     MouseMove { x: i32, y: i32 },
@@ -32,12 +32,10 @@ pub struct ActionControl {
 }
 
 impl ActionControl {
-    pub fn new() -> Self {
-        Self {
-            enigo: Enigo::new(&Settings::default()).unwrap(),
-        }
+    pub fn new(settings: &Settings) -> Self {
+        Self { enigo: Enigo::new(settings).unwrap() }
     }
-    fn parse_hotkeys(&self, key_str: &str) -> Result<Vec<Key>> {
+    fn parse_hotkeys(&self, key_str: &str) -> Result<Vec<Key>, InputError> {
         let mut keys = Vec::new();
         for part in key_str.split('+') {
             let key = match part.to_lowercase().as_str() {
@@ -53,18 +51,18 @@ impl ActionControl {
         }
         Ok(keys)
     }
-    fn parse_direction(&self, direction: &str) -> Result<Axis> {
+    fn parse_direction(&self, direction: &str) -> Result<Axis, InputError> {
         match direction.to_lowercase().as_str() {
             "up" | "down" => Ok(Axis::Vertical),
             "left" | "right" => Ok(Axis::Horizontal),
-            _ => Err(anyhow!("invalid direction: {}", direction)),
+            _ => Err(InputError::Unmapping(format!("invalid direction: {}", direction))),
         }
     }
 
-    pub fn handle_action(&mut self, action: InputAction) -> Result<()> {
+    pub fn handle_action(&mut self, action: InputAction) -> Result<(), InputError> {
         match action {
             InputAction::KeyPress(key) => {
-                self.enigo.key(Key::Unicode(key), Direction::Press)?;
+                self.enigo.key(key, Direction::Press)?;
             }
             InputAction::WriteText(text) => {
                 let stripped = text.trim_end_matches("\\n").trim_end_matches('\n');
@@ -100,8 +98,8 @@ impl ActionControl {
                 self.enigo.button(Button::Left, Direction::Press)?;
                 // 添加延迟确保拖动操作可靠性
                 sleep(Duration::from_millis(50));
-                self.enigo.move_mouse(x2, y2, Coordinate::Abs);
-                self.enigo.button(Button::Left, Direction::Release);
+                self.enigo.move_mouse(x2, y2, Coordinate::Abs)?;
+                self.enigo.button(Button::Left, Direction::Release)?;
             }
             InputAction::Scroll { x, y, length, direction } => {
                 self.enigo.move_mouse(x, y, Coordinate::Abs)?;

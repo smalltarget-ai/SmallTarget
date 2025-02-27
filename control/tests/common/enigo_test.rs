@@ -1,12 +1,10 @@
 use std::net::{TcpListener, TcpStream};
 
-use tungstenite::accept;
-
+use control::{ActionControl, InputAction};
 use enigo::{
-    Axis, Coordinate,
-    Direction::{self, Click, Press, Release},
-    Enigo, Key, Keyboard, Mouse, Settings,
+    Axis, Coordinate, Direction::{self, Click, Press, Release}, InputResult, Key, Keyboard, Mouse, Settings
 };
+use tungstenite::accept;
 
 use super::browser_events::BrowserEvent;
 
@@ -17,7 +15,7 @@ const INPUT_DELAY: u64 = 40; // Number of milliseconds to wait for the input to 
 const SCROLL_STEP: (i32, i32) = (20, 114); // (horizontal, vertical)
 
 pub struct EnigoTest {
-    enigo: Enigo,
+    action: ActionControl,
     websocket: tungstenite::WebSocket<TcpStream>,
 }
 
@@ -25,12 +23,12 @@ impl EnigoTest {
     pub fn new(settings: &Settings) -> Self {
         env_logger::try_init().ok();
         EnigoTest::start_timeout_thread();
-        let enigo = Enigo::new(settings).unwrap();
+        let action = ActionControl::new(settings);
         let _ = &*super::browser::BROWSER_INSTANCE; // Launch Firefox
         let websocket = Self::websocket();
 
         std::thread::sleep(std::time::Duration::from_secs(10)); // Give Firefox some time to launch
-        Self { enigo, websocket }
+        Self { action, websocket }
     }
 
     fn websocket() -> tungstenite::WebSocket<TcpStream> {
@@ -45,11 +43,7 @@ impl EnigoTest {
 
     fn send_message(&mut self, msg: &str) {
         println!("Sending message: {msg}");
-        self.websocket
-            .send(tungstenite::Message::Text(tungstenite::Utf8Bytes::from(
-                msg,
-            )))
-            .expect("Unable to send the message");
+        self.websocket.send(tungstenite::Message::Text(tungstenite::Utf8Bytes::from(msg))).expect("Unable to send the message");
         println!("Sent message");
     }
 
@@ -61,10 +55,7 @@ impl EnigoTest {
         let Ok(browser_event) = BrowserEvent::try_from(message) else {
             panic!("Other text received");
         };
-        assert!(
-            !(browser_event == BrowserEvent::Close),
-            "Received a Close event"
-        );
+        assert!(!(browser_event == BrowserEvent::Close), "Received a Close event");
         browser_event
     }
 
@@ -80,15 +71,11 @@ impl EnigoTest {
 
 impl Keyboard for EnigoTest {
     // This does not work for all text or the library does not work properly
-    fn fast_text(&mut self, text: &str) -> enigo::InputResult<Option<()>> {
+    fn fast_text(&mut self, text: &str) -> InputResult<Option<()>> {
         self.send_message("ClearText");
         println!("Attempt to clear the text");
-        assert_eq!(
-            BrowserEvent::ReadyForText,
-            self.read_message(),
-            "Failed to get ready for the text"
-        );
-        let res = self.enigo.text(text);
+        assert_eq!(BrowserEvent::ReadyForText, self.read_message(), "Failed to get ready for the text");
+        let res = self.action.handle_action(InputAction::WriteText(text.to_string()));
         std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
         self.send_message("GetText");
 
@@ -103,8 +90,8 @@ impl Keyboard for EnigoTest {
         res.map(Some) // TODO: Check if this is always correct
     }
 
-    fn key(&mut self, key: Key, direction: Direction) -> enigo::InputResult<()> {
-        let res = self.enigo.key(key, direction);
+    fn key(&mut self, key: Key, direction: Direction) -> InputResult<()> {
+        let res = self.action.handle_action(InputAction::KeyPress(key));
         if direction == Press || direction == Click {
             let ev = self.read_message();
             if let BrowserEvent::KeyDown(name) = ev {
@@ -140,14 +127,14 @@ impl Keyboard for EnigoTest {
         res
     }
 
-    fn raw(&mut self, keycode: u16, direction: enigo::Direction) -> enigo::InputResult<()> {
+    fn raw(&mut self, keycode: u16, direction: enigo::Direction) -> InputResult<()> {
         todo!()
     }
 }
 
 impl Mouse for EnigoTest {
-    fn button(&mut self, button: enigo::Button, direction: Direction) -> enigo::InputResult<()> {
-        let res = self.enigo.button(button, direction);
+    fn button(&mut self, button: enigo::Button, direction: Direction) -> InputResult<()> {
+        let res = self.action.handle_action(InputAction::MouseLeftClick(button));
         if direction == Press || direction == Click {
             let ev = self.read_message();
             if let BrowserEvent::MouseDown(name) = ev {
@@ -171,7 +158,7 @@ impl Mouse for EnigoTest {
         res
     }
 
-    fn move_mouse(&mut self, x: i32, y: i32, coordinate: Coordinate) -> enigo::InputResult<()> {
+    fn move_mouse(&mut self, x: i32, y: i32, coordinate: Coordinate) -> InputResult<()> {
         let res = self.enigo.move_mouse(x, y, coordinate);
         println!("Executed enigo.move_mouse");
         std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
@@ -194,7 +181,7 @@ impl Mouse for EnigoTest {
         res
     }
 
-    fn scroll(&mut self, length: i32, axis: Axis) -> enigo::InputResult<()> {
+    fn scroll(&mut self, length: i32, axis: Axis) -> InputResult<()> {
         let mut length = length;
         let res = self.enigo.scroll(length, axis);
         println!("Executed Enigo");
@@ -209,15 +196,14 @@ impl Mouse for EnigoTest {
             let ev = self.read_message();
             println!("Done waiting");
 
-            (mouse_scroll, step) =
-                if let BrowserEvent::MouseScroll(horizontal_scroll, vertical_scroll) = ev {
-                    match axis {
-                        Axis::Horizontal => (horizontal_scroll, SCROLL_STEP.0),
-                        Axis::Vertical => (vertical_scroll, SCROLL_STEP.1),
-                    }
-                } else {
-                    panic!("BrowserEvent was not a MouseScroll: {ev:?}");
-                };
+            (mouse_scroll, step) = if let BrowserEvent::MouseScroll(horizontal_scroll, vertical_scroll) = ev {
+                match axis {
+                    Axis::Horizontal => (horizontal_scroll, SCROLL_STEP.0),
+                    Axis::Vertical => (vertical_scroll, SCROLL_STEP.1),
+                }
+            } else {
+                panic!("BrowserEvent was not a MouseScroll: {ev:?}");
+            };
             length -= mouse_scroll / step;
         }
 
@@ -225,7 +211,7 @@ impl Mouse for EnigoTest {
         res
     }
 
-    fn main_display(&self) -> enigo::InputResult<(i32, i32)> {
+    fn main_display(&self) -> InputResult<(i32, i32)> {
         let res = self.enigo.main_display();
         match res {
             Ok((x, y)) => {
@@ -242,7 +228,7 @@ impl Mouse for EnigoTest {
 
     // Edge cases don't work (mouse is at the left most border and can't move one to
     // the left)
-    fn location(&self) -> enigo::InputResult<(i32, i32)> {
+    fn location(&self) -> InputResult<(i32, i32)> {
         let res = self.enigo.location();
         match res {
             Ok((x, y)) => {

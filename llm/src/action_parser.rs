@@ -107,16 +107,18 @@ pub fn parse_action_vlm(text: &str, factor: (f32, f32), mode: &str) -> Vec<Predi
 
     actions
 }
-
-struct ParsedAction {
+#[derive(Debug)]
+pub struct ParsedAction {
     function: String,
     args: HashMap<String, String>,
 }
 
+//for example parse: click(start_box='(530,965)')  
+//return ParsedAction { function: "click", args: {"start_box": "(530,965)"} }
 fn parse_action(action_str: &str) -> Option<ParsedAction> {
     lazy_static! {
         static ref FUNC_RE: Regex = Regex::new(r"^(\w+)\((.*)\)$").unwrap();
-        static ref ARG_RE: Regex = Regex::new(r"([^,'']|'[^']*')+").unwrap();
+        static ref ARG_RE: Regex = Regex::new(r#"((?:[^,'"]|'[^']*'|"[^"]*")+)"#).unwrap();
     }
 
     let cleaned = action_str.trim();
@@ -124,21 +126,20 @@ fn parse_action(action_str: &str) -> Option<ParsedAction> {
     let function_name = caps.get(1)?.as_str().to_string();
     let args_str = caps.get(2)?.as_str().trim();
 
-    let mut args = HashMap::new();
+    let mut args: HashMap<String, String> = HashMap::new();
     if !args_str.is_empty() {
         for pair in ARG_RE.find_iter(args_str) {
             let pair = pair.as_str();
+            println!("pair: {:?}", pair);
             let parts: Vec<&str> = pair.splitn(2, '=').collect();
             if parts.len() != 2 {
                 continue;
             }
-
             let key = parts[0].trim().to_string();
             let value = parts[1].trim().trim_matches(|c| c == '\'' || c == '"').to_string();
 
             args.insert(key, value);
         }
     }
-
     Some(ParsedAction { function: function_name, args })
 }
