@@ -471,7 +471,6 @@ pub fn parse_key_from_str(key_str: &str) -> Key {
         #[cfg(target_os = "macos")]
         "power" => Key::Power,
         #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
-        #[deprecated(since = "0.2.2", note = "now renamed to PrintScr")]
         "print" => Key::Print,
         #[cfg(any(target_os = "windows", all(unix, not(target_os = "macos"))))]
         "printscr" => Key::PrintScr,
@@ -509,7 +508,6 @@ pub fn parse_key_from_str(key_str: &str) -> Key {
         #[cfg(target_os = "windows")]
         "sleep" => Key::Sleep,
         #[cfg(target_os = "windows")]
-        #[deprecated(since = "0.2.2", note = "now renamed to PrintScr")]
         "snapshot" => Key::Snapshot,
         "space" => Key::Space,
         #[cfg(target_os = "windows")]

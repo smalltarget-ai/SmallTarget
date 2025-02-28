@@ -68,9 +68,9 @@ jobs:
           key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build
         run: cargo build --verbose
-        
+
       - name: Setup headless display for tests on Linux
         if: runner.os == 'Linux' # This step is only needed on Linux. The other OSs don't need to be set up
         uses: ./.github/actions/headless_display
       - name: Run tests
-        run: cargo test --verbose
+        run: cargo test --verbose --nocapture
