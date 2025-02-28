@@ -1,5 +1,5 @@
 [workspace]
-members = ["vision","audio","control", "core", "llm", "small-target-image"]
+members = ["small-target-vision","small-target-audio","small-target-control", "small-target-core", "small-target-llm", "small-target-image"]
 resolver = "2"
 exclude = ["app/src-tauri"]
 

@@ -1,5 +1,5 @@
 [package]
-name = "llm"
+name = "small-target-llm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
