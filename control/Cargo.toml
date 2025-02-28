@@ -7,7 +7,9 @@ description.workspace = true
 authors.workspace = true
 
 [dependencies]
-enigo = { version = "0.3.0", features = ["serde"] }
+enigo = { git = "https://github.com/linsmalldragon/enigo.git", branch = "main", features = [
+    "serde",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 log = { workspace = true }

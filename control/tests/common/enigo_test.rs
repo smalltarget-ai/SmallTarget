@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     net::{TcpListener, TcpStream},
+    thread::sleep,
 };
 
 use anyhow::{anyhow, Result};
@@ -29,7 +30,7 @@ impl EnigoTest {
         let _ = &*super::browser::BROWSER_INSTANCE; // Launch Firefox
         let websocket = Self::websocket();
 
-        std::thread::sleep(std::time::Duration::from_secs(10)); // Give Firefox some time to launch
+        std::thread::sleep(std::time::Duration::from_secs(5)); // Give Firefox some time to launch
         Self { action, websocket }
     }
 
@@ -50,10 +51,7 @@ impl EnigoTest {
     }
 
     fn read_message(&mut self) -> BrowserEvent {
-        println!("Waiting for message on Websocket");
         let message = self.websocket.read().unwrap();
-        println!("Processing message");
-
         let Ok(browser_event) = BrowserEvent::try_from(message) else {
             panic!("Other text received");
         };
@@ -72,6 +70,7 @@ impl EnigoTest {
 
     // This does not work for all text or the library does not work properly
     pub fn text(&mut self, text: &str) -> Result<()> {
+        println!("---------------------------------enigo.text({text:?}) start");
         self.send_message("ClearText");
         println!("Attempt to clear the text");
         assert_eq!(BrowserEvent::ReadyForText, self.read_message(), "Failed to get ready for the text");
@@ -86,10 +85,12 @@ impl EnigoTest {
         } else {
             panic!("BrowserEvent was not a Text: {ev:?}");
         }
+        println!("---------------------------------enigo.text({text:?}) was a success");
         res
     }
 
     pub fn key(&mut self, key_str: String) -> Result<()> {
+        println!("---------------------------------enigo.key({key_str:?}) start");
         let input_action = InputAction::new("key_click".to_string(), HashMap::from([("key".to_string(), key_str)]))?;
 
         let key = match input_action {
@@ -125,17 +126,18 @@ impl EnigoTest {
             panic!("BrowserEvent was not a KeyUp: {ev:?}");
         }
 
-        println!("enigo.key() was a success");
+        println!("---------------------------------enigo.key({key:?}) was a success");
         res
     }
 
     pub fn click(&mut self, action_type: String, start_box: String) -> Result<()> {
+        println!("---------------------------------enigo.button({action_type:?},({start_box})) start");
         let input_action = InputAction::new(action_type, HashMap::from([("start_box".to_string(), start_box)]))?;
-        let (x, y, button) = match input_action {
-            InputAction::MouseLeftClick { x, y } => (x, y, Button::Left),
-            InputAction::MouseMiddleClick { x, y } => (x, y, Button::Middle),
-            InputAction::MouseRightClick { x, y } => (x, y, Button::Right),
-            InputAction::MouseLeftDoubleClick { x, y } => (x, y, Button::Left),
+        let (x, y, button, count) = match input_action {
+            InputAction::MouseLeftClick { x, y } => (x, y, Button::Left, 1),
+            InputAction::MouseMiddleClick { x, y } => (x, y, Button::Middle, 1),
+            InputAction::MouseRightClick { x, y } => (x, y, Button::Right, 1),
+            InputAction::MouseLeftDoubleClick { x, y } => (x, y, Button::Left, 2),
             _ => panic!("Invalid action type"),
         };
         let res = self.action.handle_action(input_action);
@@ -149,25 +151,29 @@ impl EnigoTest {
         assert_eq!(x, mouse_position.0);
         assert_eq!(y, mouse_position.1);
 
-        let ev = self.read_message();
-        if let BrowserEvent::MouseDown(name) = ev {
-            println!("received pressed button: {name}");
-            assert_eq!(button as u32, name);
-        } else {
-            panic!("BrowserEvent was not a MouseUp: {ev:?}");
+        for _ in 0..count {
+            let ev = self.read_message();
+            if let BrowserEvent::MouseDown(name) = ev {
+                println!("received pressed button: {name}");
+                assert_eq!(button as u32, name);
+            } else {
+                panic!("BrowserEvent was not a MouseUp: {ev:?}");
+            }
+            let ev = self.read_message();
+            if let BrowserEvent::MouseUp(name) = ev {
+                println!("received released button: {name}");
+                assert_eq!(button as u32, name);
+            } else {
+                panic!("BrowserEvent was not a MouseUp: {ev:?}");
+            }
         }
-        let ev = self.read_message();
-        if let BrowserEvent::MouseUp(name) = ev {
-            println!("received released button: {name}");
-            assert_eq!(button as u32, name);
-        } else {
-            panic!("BrowserEvent was not a MouseUp: {ev:?}");
-        }
-        println!("enigo.button() was a success");
+
+        println!("---------------------------------enigo.button({button:?},({x},{y})) was a success");
         res
     }
 
     pub fn move_mouse(&mut self, action_type: String, start_box: String) -> Result<()> {
+        println!("---------------------------------enigo.move_mouse() {start_box} start");
         let input_action = InputAction::new(action_type, HashMap::from([("start_box".to_string(), start_box)]))?;
         let (x, y) = match input_action {
             InputAction::MouseMove { x, y } => (x, y),
@@ -183,11 +189,12 @@ impl EnigoTest {
         };
         assert_eq!(x, mouse_position.0);
         assert_eq!(y, mouse_position.1);
-        println!("enigo.move_mouse() was a success");
+        println!("---------------------------------enigo.move_mouse() ({x},{y}) was a success");
         res
     }
 
     pub fn scroll(&mut self, action_type: String, start_box: String, direction_str: String, length: i32) -> Result<()> {
+        println!("---------------------------------enigo.scroll({action_type:?},({start_box}),{direction_str},{length}) start");
         let input_action = InputAction::new(
             action_type,
             HashMap::from([
@@ -196,7 +203,7 @@ impl EnigoTest {
                 ("direction".to_string(), direction_str),
             ]),
         )?;
-        let (x, y, length, direction) = match input_action {
+        let (x, y, length_with_sign, direction) = match input_action {
             InputAction::Scroll { x, y, length, direction } => (x, y, length, direction),
             _ => panic!("Invalid action type"),
         };
@@ -210,7 +217,7 @@ impl EnigoTest {
         assert_eq!(x, mouse_position.0);
         assert_eq!(y, mouse_position.1);
 
-        std::thread::sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
+        sleep(std::time::Duration::from_millis(INPUT_DELAY)); // Wait for input to have an effect
 
         // On some platforms it is not possible to scroll multiple lines so we
         // repeatedly scroll. In order for this test to work on all platforms, both
@@ -232,7 +239,7 @@ impl EnigoTest {
             };
             length -= mouse_scroll / step;
         }
-        println!("enigo.scroll() was a success");
+        println!("---------------------------------enigo.scroll ({x}, {y}), {length_with_sign}, {direction:?} was a success");
         res
     }
 

@@ -88,8 +88,14 @@ impl InputAction {
             "scroll" => {
                 let (x, y) = Self::parse_box("start_box", &action_inputs)?;
                 let direction = action_inputs.get("direction").ok_or_else(|| anyhow!("missing direction in inputs: {:?}", action_inputs))?;
-                let (axis, length) = Self::parse_direction(direction, 100)?;
-                Ok(InputAction::Scroll { x, y, length, direction: axis })
+                let length = action_inputs.get("length").and_then(|v| v.parse::<i32>().ok()).unwrap_or(100);
+                let (axis, length_with_sign) = Self::parse_direction(direction, length)?;
+                Ok(InputAction::Scroll {
+                    x,
+                    y,
+                    length: length_with_sign,
+                    direction: axis,
+                })
             }
             "hotkey" => {
                 let hot_keys = action_inputs.get("key").ok_or_else(|| anyhow!("missing key in inputs: {:?}", action_inputs))?;

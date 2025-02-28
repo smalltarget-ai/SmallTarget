@@ -31,8 +31,7 @@ impl TryFrom<Message> for BrowserEvent {
                 Ok(BrowserEvent::Close)
             }
             Message::Text(msg) => {
-                println!("Message::Text received");
-                println!("msg: {msg:?}");
+                println!("received msg from browser: {msg:?}");
 
                 // Attempt to deserialize the text message into a BrowserEvent
                 if let Ok(event) = ron::from_str::<BrowserEvent>(&msg) {
