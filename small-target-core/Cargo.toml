@@ -7,3 +7,7 @@ description.workspace = true
 authors.workspace = true
 
 [dependencies]
+small-target-vision = { path = "../small-target-vision" }
+small-target-control = { path = "../small-target-control" }
+small-target-llm = { path = "../small-target-llm" }
+small-target-image = { path = "../small-target-image" }

@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use control::{ActionControl, InputAction};
+use small_target_control::{ActionControl, InputAction};
 use enigo::{Axis, Button, InputResult, Key, Mouse, Settings};
 use tungstenite::accept;
 
