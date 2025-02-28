@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use llm::action_parser::{parse_action_vlm, PredictionParsed};
+    use small_target_llm::action_parser::{parse_action_vlm, PredictionParsed};
     use std::collections::HashMap;
-    use llm::action_parser::ActionParsed;
+    use small_target_llm::action_parser::ActionParsed;
 
     mod bc_mode {
         use super::*;
-        use llm::{action_parser::ActionParsed, promps::FACTOR};
+        use small_target_llm::{action_parser::ActionParsed, promps::FACTOR};
 
         #[test]
         fn should_correctly_parse_input_with_thought() {
@@ -108,7 +108,7 @@ mod tests {
     }
 
     mod o1_mode {
-        use llm::promps::FACTOR;
+        use small_target_llm::promps::FACTOR;
 
         use super::*;
 
@@ -160,7 +160,7 @@ mod tests {
     }
 
     mod edge_cases {
-        use llm::promps::FACTOR;
+        use small_target_llm::promps::FACTOR;
 
         use super::*;
 

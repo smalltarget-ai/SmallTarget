@@ -1,6 +1,6 @@
 mod action_test {
     use anyhow::Result;
-    use control::action::InputAction;
+    use small_target_control::action::InputAction;
     use std::collections::HashMap;
 
     #[test]
