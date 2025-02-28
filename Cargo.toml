@@ -1,7 +1,7 @@
 [workspace]
 members = ["small-target-vision","small-target-audio","small-target-control", "small-target-core", "small-target-llm", "small-target-image"]
 resolver = "2"
-exclude = ["app/src-tauri"]
+exclude = ["small-target-app/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
