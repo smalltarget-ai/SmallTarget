@@ -14,7 +14,7 @@ fn integration_browser_events() {
 
     enigo.move_mouse("mouse_move".to_string(), "[100,100]".to_string()).unwrap();
     enigo.click("click".to_string(), "[210,270]".to_string()).unwrap();
-    enigo.text("TestText❤️❤️❤️❤️").unwrap();
+    enigo.text("TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️TestText❤️").unwrap();
 
     enigo.key("Control".to_string()).unwrap();
     enigo.key("Backspace".to_string()).unwrap();
@@ -33,8 +33,8 @@ fn integration_browser_events() {
     assert_eq!((300, 300), (x, y));
 
     // Stalls on Windows, macOS and Linux with x11rb
-    enigo.scroll("scroll".to_string(), "[300,300]".to_string(), "up".to_string(), 1).unwrap();
-    enigo.scroll("scroll".to_string(), "[300,300]".to_string(), "right".to_string(), 1).unwrap();
+    enigo.scroll("scroll".to_string(), "[175,340]".to_string(), "down".to_string(), 1).unwrap();
+    enigo.scroll("scroll".to_string(), "[175,340]".to_string(), "up".to_string(), 1).unwrap();
 
     enigo.main_display().unwrap();
     enigo.location().unwrap();

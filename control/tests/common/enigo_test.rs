@@ -15,7 +15,7 @@ const TIMEOUT: u64 = 5; // Number of minutes the test is allowed to run before t
                         // This is needed, because some of the websocket functions are blocking and
                         // would run indefinitely without a timeout if they don't receive a message
 const INPUT_DELAY: u64 = 40; // Number of milliseconds to wait for the input to have an effect
-const SCROLL_STEP: (i32, i32) = (20, 114); // (horizontal, vertical)
+const SCROLL_STEP: (i32, i32) = (16, 16); // (horizontal, vertical)
 
 pub struct EnigoTest {
     action: ActionControl,
@@ -227,8 +227,6 @@ impl EnigoTest {
         let mut length = length;
         while length > 0 {
             let ev = self.read_message();
-            println!("Done waiting");
-
             (mouse_scroll, step) = if let BrowserEvent::MouseScroll(horizontal_scroll, vertical_scroll) = ev {
                 match direction {
                     Axis::Horizontal => (horizontal_scroll, SCROLL_STEP.0),
@@ -237,7 +235,7 @@ impl EnigoTest {
             } else {
                 panic!("BrowserEvent was not a MouseScroll: {ev:?}");
             };
-            length -= mouse_scroll / step;
+            length -= mouse_scroll.abs() / step;
         }
         println!("---------------------------------enigo.scroll ({x}, {y}), {length_with_sign}, {direction:?} was a success");
         res
