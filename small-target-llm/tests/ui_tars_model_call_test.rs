@@ -1,11 +1,12 @@
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use llm::{get_system_prompt, openai_request, parse_action_vlm, promps::FACTOR, OpenAiProtocalCallPayload, MAX_PIXELS};
+    use small_target_llm::{get_system_prompt, openai_request, parse_action_vlm, promps::FACTOR, OpenAiProtocalCallPayload, MAX_PIXELS};
     use openai_api_rs::v1::chat_completion::{ChatCompletionMessage, Content, ContentType, ImageUrl, ImageUrlType, MessageRole};
     use small_target_image::{image_from_path, image_resize, image_to_base64};
     use std::{fs::create_dir_all, path::PathBuf};
 
+    #[ignore]
     #[tokio::test]
     async fn test_call_ai() -> Result<()> {
         // test image path
